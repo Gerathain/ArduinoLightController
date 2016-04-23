@@ -2,14 +2,22 @@
 
 #define FLOAT_RAND(n) static_cast <float> (rand()) / static_cast <float> (RAND_MAX/n)
 
-#define RED 10
-#define BLUE 9
-#define GREEN 11
+#define RED_PIN 10
+#define BLUE_PIN 9
+#define GREEN_PIN 11
+
+#define MODE_OFF 0
+#define MODE_SIGNAL_COLOUR 1
+#define MODE_LOOP_COLOUR 2
+#define MODE_CONST_COLOUR 3
+
+#define MAX_COMMAND_SIZE 8
 
 double hsv[3] = {0.5, 1, 1};
 byte rgb[3];
 double vector = 0;
 int mode = 1;
+int* commandBuffer = (int*)malloc(MAX_COMMAND_SIZE);
 
 void setup() {
   // put your setup code here, to run once:
@@ -18,9 +26,9 @@ void setup() {
 
   Serial.begin(9600);
   
-  pinMode(RED, OUTPUT);
-  pinMode(GREEN, OUTPUT);
-  pinMode(BLUE, OUTPUT);
+  pinMode(RED_PIN, OUTPUT);
+  pinMode(GREEN_PIN, OUTPUT);
+  pinMode(BLUE_PIN, OUTPUT);
 }
 
 void off()
@@ -30,7 +38,7 @@ void off()
   hsv[2] = 0;
 }
 
-void signalColour()
+void signalColourStep()
 {
   hsv[1] = 1;
   hsv[2] = 1;
@@ -49,7 +57,7 @@ void signalColour()
   return;
 }
 
-void loopColour()
+void loopColourStep()
 {
   hsv[0] += 0.001;
   hsv[1] = 1;
@@ -57,31 +65,88 @@ void loopColour()
   return;
 }
 
+void setConstColour()
+{
+  
+}
+
+int parseCommand(int* command)
+{
+  bool commandCorrect = true;
+  switch(command[0])
+  {
+    case MODE_OFF:
+      mode = MODE_OFF;
+      break;
+    case MODE_SIGNAL_COLOUR:
+      mode = MODE_SIGNAL_COLOUR;
+      break;
+    case MODE_LOOP_COLOUR:
+      mode = MODE_LOOP_COLOUR;
+      break;
+    case MODE_CONST_COLOUR:
+      mode = MODE_CONST_COLOUR;
+      switch(command[1])
+      {
+        case 0:
+          RGBConverter::rgbToHsv(command[2], command[3], command[4], hsv);
+          break;
+        default:
+          commandCorrect = false;
+          break;
+      }
+      break;
+    default:
+      commandCorrect = false;
+  }
+
+  if(!commandCorrect)
+  {
+    Serial.write("Command or subcommand not correct, you lose");
+  }
+}
+
 void loop() {
   if(Serial.available() > 0)
   {
-    mode = Serial.read();
+    int commandSize = Serial.read();
+    if(commandSize > MAX_COMMAND_SIZE)
+    {
+      
+      Serial.write(strcat("Command too long, max command length: ", (char*)MAX_COMMAND_SIZE + '0'));
+    }
+    else
+    {
+      for(int i = 0; i < commandSize; i++)
+      {
+        commandBuffer[i] = (int)Serial.read();
+      }
+      parseCommand(commandBuffer);
+    }
   }
 
   switch(mode)
   {
-    case 0:
+    case MODE_OFF:
       off();
       break;
-    case 1:
-      signalColour();
+    case MODE_SIGNAL_COLOUR:
+      signalColourStep();
       break;
-    case 2:
-      loopColour();
+    case MODE_LOOP_COLOUR:
+      loopColourStep();
+      break;
+    case MODE_CONST_COLOUR:
+      setConstColour();
       break;
     default:
-      mode = 0;
+      mode = MODE_OFF;
   }  
 
   RGBConverter::hsvToRgb(hsv[0], hsv[1], hsv[2], rgb);
-  analogWrite(RED, rgb[0]);
-  analogWrite(GREEN, rgb[1]);
-  analogWrite(BLUE, rgb[2]);
+  analogWrite(RED_PIN, rgb[0]);
+  analogWrite(GREEN_PIN, rgb[1]);
+  analogWrite(BLUE_PIN, rgb[2]);
   
   delay(20);
 }
