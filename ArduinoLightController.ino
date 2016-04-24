@@ -40,10 +40,7 @@ void off()
 
 void signalColourStep()
 {
-  hsv[1] = 1;
-  hsv[2] = 1;
-  
-    float r = FLOAT_RAND(0.002);
+  float r = FLOAT_RAND(0.002);
   if (FLOAT_RAND(1) >= 0.5)
   {
     r *= -1;
@@ -60,8 +57,6 @@ void signalColourStep()
 void loopColourStep()
 {
   hsv[0] += 0.001;
-  hsv[1] = 1;
-  hsv[2] = 1;
   return;
 }
 
@@ -73,6 +68,8 @@ void setConstColour()
 int parseCommand(int* command)
 {
   bool commandCorrect = true;
+  long h;
+  
   switch(command[0])
   {
     case MODE_OFF:
@@ -80,9 +77,13 @@ int parseCommand(int* command)
       break;
     case MODE_SIGNAL_COLOUR:
       mode = MODE_SIGNAL_COLOUR;
+      hsv[1] = 1;
+      hsv[2] = 1;
       break;
     case MODE_LOOP_COLOUR:
       mode = MODE_LOOP_COLOUR;
+      hsv[1] = 1;
+      hsv[2] = 1;
       break;
     case MODE_CONST_COLOUR:
       mode = MODE_CONST_COLOUR;
@@ -90,6 +91,18 @@ int parseCommand(int* command)
       {
         case 0:
           RGBConverter::rgbToHsv(command[2], command[3], command[4], hsv);
+          break;
+        case 1:
+          h = command[2];
+          h <<= 24;
+          h += command[3];
+          h <<= 16;
+          h += command[4];
+          h <<= 8;
+          h += command[5];
+          hsv[0] = h/4294967295.0f; //2^32 - 1 to convert h into [0:1] range
+          hsv[1] = (float)command[6]/255;
+          hsv[2] = (float)command[7]/255;
           break;
         default:
           commandCorrect = false;
@@ -100,7 +113,11 @@ int parseCommand(int* command)
       commandCorrect = false;
   }
 
-  if(!commandCorrect)
+  if(commandCorrect)
+  {
+    Serial.write("Command correct!");
+  }
+  else
   {
     Serial.write("Command or subcommand not correct, you lose");
   }
@@ -112,11 +129,16 @@ void loop() {
     int commandSize = Serial.read();
     if(commandSize > MAX_COMMAND_SIZE)
     {
-      
-      Serial.write(strcat("Command too long, max command length: ", (char*)MAX_COMMAND_SIZE + '0'));
+      char* msg;
+      sprintf(msg, "Command too long, max command length: %d", MAX_COMMAND_SIZE);
+      Serial.write(msg);
     }
     else
     {
+      while(Serial.available() < commandSize)
+      {
+        delay(1);
+      }
       for(int i = 0; i < commandSize; i++)
       {
         commandBuffer[i] = (int)Serial.read();
