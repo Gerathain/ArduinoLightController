@@ -9,7 +9,7 @@ Currently has several modes that the arduino can be in:
 The arduino has the ability to communicate over serial with a simple protocol to prevent errors and allow expansion.
   Messages consist of a length and a payload.
   The payload is up to 8 bytes (to try and prevent locking up the arduino with data streams)
-  WARNING: if the message length is wrong, the arduino may lock up/freakout. In the future this will be improved so the aruino won't lock up
+  WARNING: if the message length is wrong, the arduino may treat one command as two/ignore subsequent commands.
 
 In the future this will be expanded with the ability to use data streams to control the colour of the lights.
 
