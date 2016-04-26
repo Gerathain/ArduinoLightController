@@ -126,24 +126,28 @@ int parseCommand(int* command)
 void loop() {
   if(Serial.available() > 0)
   {
-    int commandSize = Serial.read();
+    int commandSize = Serial.peek();
     if(commandSize > MAX_COMMAND_SIZE)
     {
       char* msg;
       sprintf(msg, "Command too long, max command length: %d", MAX_COMMAND_SIZE);
       Serial.write(msg);
+      for(int i = 0; i <= commandSize; i++)
+      {
+        Serial.read();
+      }
     }
     else
     {
-      while(Serial.available() < commandSize)
+      if(Serial.available() >= commandSize + 1)
       {
-        delay(1);
+        Serial.read();
+        for(int i = 0; i < commandSize; i++)
+        {
+         commandBuffer[i] = (int)Serial.read();
+        }
+        parseCommand(commandBuffer);
       }
-      for(int i = 0; i < commandSize; i++)
-      {
-        commandBuffer[i] = (int)Serial.read();
-      }
-      parseCommand(commandBuffer);
     }
   }
 
