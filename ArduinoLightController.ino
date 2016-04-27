@@ -68,7 +68,7 @@ void setConstColour()
 int parseCommand(int* command)
 {
   bool commandCorrect = true;
-  long h;
+  unsigned long h;
   
   switch(command[0])
   {
@@ -77,8 +77,19 @@ int parseCommand(int* command)
       break;
     case MODE_SIGNAL_COLOUR:
       mode = MODE_SIGNAL_COLOUR;
-      hsv[1] = 1;
-      hsv[2] = 1;
+      switch(command[1])
+      {
+        case 0:
+          hsv[1] = 1;
+          hsv[2] = 1;
+          break;
+        case 1:
+          hsv[1] = (float)command[2] / 255;
+          hsv[2] = (float)command[3] / 255;
+          break;
+        default:
+          commandCorrect = false;
+      }
       break;
     case MODE_LOOP_COLOUR:
       mode = MODE_LOOP_COLOUR;
@@ -94,9 +105,9 @@ int parseCommand(int* command)
           break;
         case 1:
           h = command[2];
-          h <<= 24;
+          h <<= 8;
           h += command[3];
-          h <<= 16;
+          h <<= 8;
           h += command[4];
           h <<= 8;
           h += command[5];
