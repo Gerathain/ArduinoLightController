@@ -10,6 +10,7 @@
 #define MODE_SIGNAL_COLOUR 1
 #define MODE_LOOP_COLOUR 2
 #define MODE_CONST_COLOUR 3
+#define MODE_RAND_COLOUR 4
 
 #define MAX_COMMAND_SIZE 8
 
@@ -60,15 +61,42 @@ void loopColourStep()
   return;
 }
 
-void setConstColour()
+bool setConstColour(int* command)
 {
-  
+  unsigned long h;
+  switch(command[1])
+  {
+    case 0:
+      RGBConverter::rgbToHsv(command[2], command[3], command[4], hsv);
+      break;
+    case 1:
+      h = command[2];
+      h <<= 8;
+      h += command[3];
+      h <<= 8;
+      h += command[4];
+      h <<= 8;
+      h += command[5];
+      hsv[0] = h/4294967295.0f; //2^32 - 1 to convert h into [0:1] range
+      hsv[1] = (float)command[6]/255;
+      hsv[2] = (float)command[7]/255;
+      break;
+    default:
+      return false;
+  }
+  return true;
+}
+
+void randColourStep()
+{
+  hsv[0] = FLOAT_RAND(1);
+  hsv[1] = 1;
+  hsv[2] = 1;
 }
 
 int parseCommand(int* command)
 {
   bool commandCorrect = true;
-  unsigned long h;
   
   switch(command[0])
   {
@@ -98,27 +126,10 @@ int parseCommand(int* command)
       break;
     case MODE_CONST_COLOUR:
       mode = MODE_CONST_COLOUR;
-      switch(command[1])
-      {
-        case 0:
-          RGBConverter::rgbToHsv(command[2], command[3], command[4], hsv);
-          break;
-        case 1:
-          h = command[2];
-          h <<= 8;
-          h += command[3];
-          h <<= 8;
-          h += command[4];
-          h <<= 8;
-          h += command[5];
-          hsv[0] = h/4294967295.0f; //2^32 - 1 to convert h into [0:1] range
-          hsv[1] = (float)command[6]/255;
-          hsv[2] = (float)command[7]/255;
-          break;
-        default:
-          commandCorrect = false;
-          break;
-      }
+      commandCorrect = setConstColour(command);
+      break;
+    case MODE_RAND_COLOUR:
+      mode = MODE_RAND_COLOUR;
       break;
     default:
       commandCorrect = false;
@@ -174,7 +185,9 @@ void loop() {
       loopColourStep();
       break;
     case MODE_CONST_COLOUR:
-      setConstColour();
+      break;
+    case MODE_RAND_COLOUR:
+      randColourStep();
       break;
     default:
       mode = MODE_OFF;
